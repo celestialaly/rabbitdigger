@@ -1,0 +1,31 @@
+{
+  "rabbitmq_version": "3.13.7",
+  "users": [
+    {
+      "name": "guest",
+      "password_hash": "8h3M7dE/h0GwC/AOzHfmEI8Vx3zGHjya8CEO1XG1TFyZiTCm",
+      "hashing_algorithm": "rabbit_password_hashing_sha256",
+      "tags": ["administrator"],
+      "limits": {}
+    }
+  ],
+  "vhosts": [{ "name": "/", "limits": [], "metadata": { "description": "", "tags": [] } }],
+  "permissions": [
+    {
+      "user": "guest",
+      "vhost": "/",
+      "configure": ".*",
+      "write": ".*",
+      "read": ".*"
+    }
+  ],
+  "queues": [
+    {
+      "name": "default",
+      "vhost": "/",
+      "durable": true,
+      "auto_delete": false,
+      "arguments": {}
+    }
+  ]
+}

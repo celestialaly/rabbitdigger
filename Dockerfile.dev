@@ -1,0 +1,10 @@
+FROM node:22-alpine
+
+WORKDIR /app
+
+# Install dependencies first (layer cache)
+COPY package.json yarn.lock* ./
+RUN corepack enable && yarn install
+
+# Source is mounted as a volume at runtime — no COPY src needed
+CMD ["yarn", "dev", "--host"]

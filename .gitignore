@@ -1,0 +1,7 @@
+node_modules
+dist
+.env
+*.local
+.yarn/install-state.gz
+docker/rabbitmq/data/
+.vscode
