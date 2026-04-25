@@ -56,7 +56,7 @@ describe('QueueMessageList', () => {
     await flushPromises()
 
     expect(store.fetchMessages).toHaveBeenCalledWith('default', {
-      count: 10,
+      count: 25,
       requeue: true,
     })
   })
@@ -73,7 +73,7 @@ describe('QueueMessageList', () => {
     await flushPromises()
 
     expect(store.fetchMessages).toHaveBeenCalledWith('default', {
-      count: 10,
+      count: 25,
       requeue: false,
     })
     expect(wrapper.find('[data-testid="destructive-warning"]').exists()).toBe(true)

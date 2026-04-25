@@ -176,7 +176,7 @@ const props = defineProps<{
 }>()
 
 const store = useQueueMessagesStore()
-const itemsPerPage = ref(10)
+const itemsPerPage = ref(25)
 const requeue = ref(true)
 const filterText = ref('')
 const exportDialogOpen = ref(false)

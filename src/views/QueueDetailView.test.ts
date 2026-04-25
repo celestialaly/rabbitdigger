@@ -78,7 +78,8 @@ describe('QueueDetailView', () => {
   })
 
   it('triggers refreshQueues on mount when the cache is empty', async () => {
-    const refreshSpy = vi.fn().mockResolvedValue(undefined)
+    // stubActions: true auto-creates vi.fn() spies for every action before mount,
+    // which prevents the real refreshQueues() from firing a real fetch request.
     const wrapper = mount(QueueDetailView, {
       props: { name: 'default' },
       global: {
@@ -86,7 +87,7 @@ describe('QueueDetailView', () => {
         plugins: [
           createTestingPinia({
             createSpy: vi.fn,
-            stubActions: false,
+            stubActions: true,
             initialState: {
               queues: { queues: [], exchanges: [], overview: null, loading: false, error: null },
             },
@@ -96,10 +97,8 @@ describe('QueueDetailView', () => {
       },
     })
     const store = useQueuesStore()
-    store.refreshQueues = refreshSpy
-    // mount calls onMounted synchronously; refresh should already have been invoked
     await flushPromises()
-    // unmount-time clear keeps the test isolated
+    expect(store.refreshQueues).toHaveBeenCalledOnce()
     wrapper.unmount()
   })
 })
