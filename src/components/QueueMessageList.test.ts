@@ -157,4 +157,172 @@ describe('QueueMessageList', () => {
     const input = wrapper.find('[data-testid="filter-input"] input')
     expect((input.element as HTMLInputElement).disabled).toBe(true)
   })
+
+  describe('CSV export', () => {
+    beforeEach(() => {
+      document.body.innerHTML = ''
+    })
+
+    it('disables the Export CSV button when there are no rows to export', async () => {
+      const wrapper = mountComponent({ queueName: 'default' })
+      await flushPromises()
+      const btn = wrapper.find('[data-testid="export-btn"]')
+      expect((btn.element as HTMLButtonElement).disabled).toBe(true)
+    })
+
+    it('opens the export dialog when Export CSV is clicked', async () => {
+      const wrapper = mountComponent({ queueName: 'orders' })
+      const store = useQueueMessagesStore()
+      store.messages = [makeMessage({ payload: 'a' })]
+      await flushPromises()
+      await wrapper.find('[data-testid="export-btn"]').trigger('click')
+      await flushPromises()
+      expect(document.querySelector('[data-testid="export-info"]')).not.toBeNull()
+      expect(
+        document.querySelector('[data-testid="export-info"]')?.textContent,
+      ).toContain('orders')
+    })
+
+    it('downloads a CSV with the configured columns and header on confirm', async () => {
+      const wrapper = mountComponent({ queueName: 'orders' })
+      const store = useQueueMessagesStore()
+      store.messages = [
+        makeMessage({
+          payload: 'hello',
+          payload_bytes: 5,
+          routing_key: 'rk1',
+          exchange: 'ex1',
+          properties: { message_id: 'msg-1' },
+        }),
+        makeMessage({
+          payload: 'YmluYXJ5',
+          payload_encoding: 'base64',
+          payload_bytes: 6,
+          routing_key: 'rk2',
+          exchange: 'ex2',
+          properties: {},
+        }),
+      ]
+      await flushPromises()
+
+      const blobs: Blob[] = []
+      const createUrl = vi
+        .spyOn(URL, 'createObjectURL')
+        .mockImplementation((b: Blob | MediaSource) => {
+          blobs.push(b as Blob)
+          return 'blob:mock'
+        })
+      const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+      const clicks: HTMLAnchorElement[] = []
+      const origClick = HTMLAnchorElement.prototype.click
+      HTMLAnchorElement.prototype.click = function () {
+        clicks.push(this as HTMLAnchorElement)
+      }
+
+      try {
+        await wrapper.find('[data-testid="export-btn"]').trigger('click')
+        await flushPromises()
+        ;(
+          document.querySelector('[data-testid="export-confirm"]') as HTMLElement
+        ).click()
+        await flushPromises()
+
+        expect(blobs).toHaveLength(1)
+        const text = await blobs[0].text()
+        const lines = text.split('\r\n')
+        expect(lines[0]).toBe('id,size,body,routing key,source queue,source exchange')
+        expect(lines[1]).toBe('msg-1,5,hello,rk1,orders,ex1')
+        expect(lines[2]).toBe(',6,YmluYXJ5,rk2,orders,ex2')
+
+        expect(clicks).toHaveLength(1)
+        expect(clicks[0].download).toMatch(/^messages-orders-\d{8}-\d{6}\.csv$/)
+      } finally {
+        HTMLAnchorElement.prototype.click = origClick
+        createUrl.mockRestore()
+        revokeUrl.mockRestore()
+      }
+    })
+
+    it('omits the header row when the checkbox is unchecked', async () => {
+      const wrapper = mountComponent({ queueName: 'q' })
+      const store = useQueueMessagesStore()
+      store.messages = [makeMessage({ payload: 'p', routing_key: 'r' })]
+      await flushPromises()
+
+      const blobs: Blob[] = []
+      const createUrl = vi
+        .spyOn(URL, 'createObjectURL')
+        .mockImplementation((b: Blob | MediaSource) => {
+          blobs.push(b as Blob)
+          return 'blob:mock'
+        })
+      const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+      const origClick = HTMLAnchorElement.prototype.click
+      HTMLAnchorElement.prototype.click = function () {}
+
+      try {
+        await wrapper.find('[data-testid="export-btn"]').trigger('click')
+        await flushPromises()
+        const checkbox = document.querySelector(
+          '[data-testid="csv-include-header"] input[type="checkbox"]',
+        ) as HTMLInputElement
+        checkbox.click()
+        await flushPromises()
+        ;(
+          document.querySelector('[data-testid="export-confirm"]') as HTMLElement
+        ).click()
+        await flushPromises()
+
+        const text = await blobs[0].text()
+        expect(text).toBe(',5,p,r,q,')
+      } finally {
+        HTMLAnchorElement.prototype.click = origClick
+        createUrl.mockRestore()
+        revokeUrl.mockRestore()
+      }
+    })
+
+    it('exports only the rows currently visible after filtering', async () => {
+      const wrapper = mountComponent({ queueName: 'q' })
+      const store = useQueueMessagesStore()
+      store.messages = [
+        makeMessage({ payload: 'order-1', routing_key: 'orders' }),
+        makeMessage({ payload: 'invoice', routing_key: 'billing' }),
+      ]
+      store.lastFetchAt = new Date()
+      await flushPromises()
+
+      const input = wrapper.find('[data-testid="filter-input"] input')
+      await input.setValue('order')
+      await flushPromises()
+
+      const blobs: Blob[] = []
+      const createUrl = vi
+        .spyOn(URL, 'createObjectURL')
+        .mockImplementation((b: Blob | MediaSource) => {
+          blobs.push(b as Blob)
+          return 'blob:mock'
+        })
+      const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {})
+      const origClick = HTMLAnchorElement.prototype.click
+      HTMLAnchorElement.prototype.click = function () {}
+
+      try {
+        await wrapper.find('[data-testid="export-btn"]').trigger('click')
+        await flushPromises()
+        ;(
+          document.querySelector('[data-testid="export-confirm"]') as HTMLElement
+        ).click()
+        await flushPromises()
+
+        const text = await blobs[0].text()
+        expect(text).toContain('order-1')
+        expect(text).not.toContain('invoice')
+      } finally {
+        HTMLAnchorElement.prototype.click = origClick
+        createUrl.mockRestore()
+        revokeUrl.mockRestore()
+      }
+    })
+  })
 })

@@ -22,6 +22,15 @@
         >
           Fetch
         </v-btn>
+        <v-btn
+          variant="outlined"
+          prepend-icon="mdi-file-export"
+          :disabled="filteredRows.length === 0"
+          data-testid="export-btn"
+          @click="exportDialogOpen = true"
+        >
+          Export CSV
+        </v-btn>
         <v-switch
           v-model="requeue"
           color="primary"
@@ -141,6 +150,13 @@
           </tr>
         </template>
       </v-data-table>
+
+      <ExportCsvDialog
+        v-model="exportDialogOpen"
+        :queue-name="props.queueName"
+        :message-count="filteredRows.length"
+        @confirm="onExport"
+      />
     </div>
   </div>
 </template>
@@ -150,6 +166,8 @@ import { ref, computed } from 'vue'
 import { useQueueMessagesStore } from '@/stores/queueMessages'
 import { decodePayload, type DecodedPayload } from '@/utils/decodePayload'
 import { DEFAULT_GET_TRUNCATE, type PeekedMessage } from '@/services/management'
+import { toCsv } from '@/utils/csv'
+import ExportCsvDialog from '@/components/ExportCsvDialog.vue'
 
 const props = defineProps<{
   queueName: string
@@ -161,6 +179,16 @@ const store = useQueueMessagesStore()
 const itemsPerPage = ref(10)
 const requeue = ref(true)
 const filterText = ref('')
+const exportDialogOpen = ref(false)
+
+const CSV_COLUMNS = [
+  'id',
+  'size',
+  'body',
+  'routing key',
+  'source queue',
+  'source exchange',
+] as const
 
 const isStream = computed(() => props.queueType === 'stream')
 
@@ -227,5 +255,44 @@ function formatJson(value: unknown) {
   } catch {
     return String(value)
   }
+}
+
+function onExport(opts: { separator: string; quote: string; includeHeader: boolean }) {
+  const data = filteredRows.value.map((row) => [
+    row.message.properties.message_id ?? '',
+    String(row.message.payload_bytes),
+    row.message.payload,
+    row.message.routing_key,
+    props.queueName,
+    row.message.exchange,
+  ])
+  const csv = toCsv(data, {
+    separator: opts.separator,
+    quote: opts.quote,
+    header: opts.includeHeader ? CSV_COLUMNS : undefined,
+  })
+  downloadCsv(csv, buildFilename(props.queueName))
+}
+
+function buildFilename(queueName: string): string {
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const stamp =
+    `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}` +
+    `-${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`
+  const safe = queueName.replace(/[^a-zA-Z0-9._-]+/g, '_') || 'queue'
+  return `messages-${safe}-${stamp}.csv`
+}
+
+function downloadCsv(content: string, filename: string) {
+  const blob = new Blob([content], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
 }
 </script>

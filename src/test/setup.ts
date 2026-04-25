@@ -30,3 +30,21 @@ if (typeof CSS === 'undefined' || !CSS.supports) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   ;(globalThis as any).CSS = { supports: () => false, escape: (s: string) => s }
 }
+
+// visualViewport is used by Vuetify VOverlay's location strategy and is not
+// implemented by happy-dom.
+if (typeof window !== 'undefined' && !window.visualViewport) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  ;(window as any).visualViewport = {
+    width: 1024,
+    height: 768,
+    offsetLeft: 0,
+    offsetTop: 0,
+    pageLeft: 0,
+    pageTop: 0,
+    scale: 1,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  }
+}

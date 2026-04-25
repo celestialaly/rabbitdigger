@@ -75,7 +75,8 @@ rabbitdigger/
 │   │   └── setup.ts                 # Vitest global setup (Vuetify DOM stubs)
 │   ├── components/
 │   │   ├── StatCard.vue             # Reusable metric card
-│   │   └── QueueMessageList.vue     # Fetches, filters & renders messages of a queue (ADR 0004 P1, ADR 0007)
+│   │   ├── ExportCsvDialog.vue      # Modal to configure CSV export options (ADR 0008)
+│   │   └── QueueMessageList.vue     # Fetches, filters, exports & renders messages of a queue (ADR 0004 P1, ADR 0007, ADR 0008)
 │   ├── views/
 │   │   ├── ConnectView.vue          # Connection form (entry point)
 │   │   ├── DashboardView.vue        # Cluster overview, polled every 5s
@@ -94,6 +95,7 @@ rabbitdigger/
 │   │   └── messages.ts              # Pinia: consumed message ring-buffer (max 200)
 │   ├── utils/
 │   │   ├── nanoid.ts                # Tiny ID generator (no dependency)
+│   │   ├── csv.ts                   # RFC 4180 CSV serializer (ADR 0008)
 │   │   └── decodePayload.ts         # Decode RabbitMQ payload string|base64 → text + binary flag
 │   ├── router/index.ts              # Vue Router — guards redirect to /connect if not connected
 │   ├── App.vue                      # Root: nav drawer + <router-view>

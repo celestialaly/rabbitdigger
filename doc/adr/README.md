@@ -11,6 +11,7 @@ Les ADR documentent les décisions techniques significatives prises sur ce proje
 | [0005](./0005-degradation-gracieuse-stomp.md) | Dégradation gracieuse quand le plugin STOMP est désactivé | Accepté |
 | [0006](./0006-proxy-vite-broker.md) | Proxy serveur dev pour les appels REST au broker | Accepté |
 | [0007](./0007-filtre-client-side-messages-queue.md) | Filtre client-side du tableau des messages d'une queue | Accepté |
+| [0008](./0008-export-csv-messages-queue.md) | Export CSV des messages d'une queue | Accepté |
 
 ## Format
 
