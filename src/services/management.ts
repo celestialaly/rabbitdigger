@@ -1,7 +1,16 @@
 import { useConnectionStore } from '@/stores/connection'
 
-function getBaseUrl(): string {
-  return '/api'
+/**
+ * All REST calls go through the same-origin `/__rabbit` Vite middleware
+ * (see `vite.config.ts` and ADR 0006). The actual broker URL is passed via
+ * the `X-Rabbit-Target` header, so the browser never makes a cross-origin
+ * request — CORS on the target broker becomes irrelevant.
+ */
+const PROXY_PREFIX = '/__rabbit'
+
+function getTarget(): string {
+  const store = useConnectionStore()
+  return `http://${store.host}:${store.managementPort}`
 }
 
 function getHeaders(): HeadersInit {
@@ -10,11 +19,12 @@ function getHeaders(): HeadersInit {
   return {
     'Authorization': `Basic ${credentials}`,
     'Content-Type': 'application/json',
+    'X-Rabbit-Target': getTarget(),
   }
 }
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${getBaseUrl()}${path}`, {
+  const res = await fetch(`${PROXY_PREFIX}${path}`, {
     ...options,
     headers: { ...getHeaders(), ...(options.headers ?? {}) },
   })

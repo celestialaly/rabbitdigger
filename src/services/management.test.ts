@@ -9,6 +9,8 @@ describe('management service', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
     const store = useConnectionStore()
+    store.host = 'localhost'
+    store.managementPort = 15672
     store.username = 'guest'
     store.password = 'guest'
     fetchMock = vi.fn()
@@ -28,10 +30,26 @@ describe('management service', () => {
     expect(headers['Content-Type']).toBe('application/json')
   })
 
-  it('prefixes URLs with /api', async () => {
+  it('routes through the /__rabbit proxy and forwards the broker URL via X-Rabbit-Target', async () => {
     fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) })
     await management.whoami()
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/api/whoami')
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/__rabbit/api/whoami')
+    const headers = init.headers as Record<string, string>
+    expect(headers['X-Rabbit-Target']).toBe('http://localhost:15672')
+  })
+
+  it('honours a custom host / managementPort from the store via X-Rabbit-Target', async () => {
+    const store = useConnectionStore()
+    store.host = 'broker.example.com'
+    store.managementPort = 25672
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) })
+    await management.whoami()
+    const [url, init] = fetchMock.mock.calls[0]
+    expect(url).toBe('/__rabbit/api/whoami')
+    expect((init.headers as Record<string, string>)['X-Rabbit-Target']).toBe(
+      'http://broker.example.com:25672',
+    )
   })
 
   it('throws on non-OK response with status and body', async () => {
@@ -45,7 +63,7 @@ describe('management service', () => {
       await management.getQueueMessages('default')
 
       const [url, init] = fetchMock.mock.calls[0]
-      expect(url).toBe('/api/api/queues/%2F/default/get')
+      expect(url).toBe('/__rabbit/api/queues/%2F/default/get')
       expect(init.method).toBe('POST')
       expect(JSON.parse(init.body as string)).toEqual({
         count: 50,
@@ -65,7 +83,7 @@ describe('management service', () => {
       })
 
       const [url, init] = fetchMock.mock.calls[0]
-      expect(url).toBe('/api/api/queues/prod/orders/get')
+      expect(url).toBe('/__rabbit/api/queues/prod/orders/get')
       expect(JSON.parse(init.body as string)).toEqual({
         count: 10,
         ackmode: 'ack_requeue_false',
@@ -78,7 +96,7 @@ describe('management service', () => {
       fetchMock.mockResolvedValueOnce({ ok: true, json: async () => [] })
       await management.getQueueMessages('my queue/with-slash')
       expect(fetchMock.mock.calls[0][0]).toBe(
-        '/api/api/queues/%2F/my%20queue%2Fwith-slash/get',
+        '/__rabbit/api/queues/%2F/my%20queue%2Fwith-slash/get',
       )
     })
   })

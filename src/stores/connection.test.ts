@@ -44,6 +44,24 @@ describe('connection store', () => {
     await promise
     expect(store.status).toBe('connected')
     expect(store.error).toBeNull()
+    expect(store.stompEnabled).toBe(true)
+    expect(connectStomp).toHaveBeenCalledOnce()
+  })
+
+  it('still reports connected with stompEnabled=false when the WebSocket handshake fails', async () => {
+    vi.mocked(management.whoami).mockResolvedValueOnce({ name: 'guest', tags: '' })
+    vi.mocked(connectStomp).mockRejectedValueOnce(new Error('WebSocket connection failed'))
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+    const store = useConnectionStore()
+    await store.connect()
+
+    expect(store.status).toBe('connected')
+    expect(store.error).toBeNull()
+    expect(store.stompEnabled).toBe(false)
+    expect(disconnectStomp).toHaveBeenCalledOnce()
+    expect(warnSpy).toHaveBeenCalled()
+    warnSpy.mockRestore()
   })
 
   it('transitions to error and stores message when whoami fails', async () => {
@@ -53,17 +71,8 @@ describe('connection store', () => {
     await store.connect()
     expect(store.status).toBe('error')
     expect(store.error).toBe('HTTP 401: unauthorized')
+    expect(store.stompEnabled).toBe(false)
     expect(connectStomp).not.toHaveBeenCalled()
-  })
-
-  it('transitions to error when WebSocket fails', async () => {
-    vi.mocked(management.whoami).mockResolvedValueOnce({ name: 'guest', tags: '' })
-    vi.mocked(connectStomp).mockRejectedValueOnce(new Error('WebSocket connection failed'))
-
-    const store = useConnectionStore()
-    await store.connect()
-    expect(store.status).toBe('error')
-    expect(store.error).toBe('WebSocket connection failed')
   })
 
   it('disconnect calls disconnectStomp and resets status', () => {
@@ -71,5 +80,6 @@ describe('connection store', () => {
     store.disconnect()
     expect(disconnectStomp).toHaveBeenCalledOnce()
     expect(store.status).toBe('disconnected')
+    expect(store.stompEnabled).toBe(false)
   })
 })

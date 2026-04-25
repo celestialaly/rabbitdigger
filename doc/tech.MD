@@ -32,33 +32,32 @@ The frontend communicates with RabbitMQ using two distinct protocols:
 
 ```
 Browser
-  ├── REST (Fetch API) → /api  →  Vite proxy  →  RabbitMQ Management API (port 15672)
-  └── WebSocket (STOMP)        →  RabbitMQ WebStomp plugin (port 15674)
+  ├── REST  (Fetch) → /__rabbit → Vite middleware → http://{host}:{managementPort}
+  └── STOMP (WebSocket) → ws://{host}:{stompPort}/ws
 ```
+
+The `/__rabbit` middleware (defined in [vite.config.ts](../vite.config.ts))
+forwards every REST call to the broker URL the browser passes via the
+`X-Rabbit-Target` header. This keeps the call same-origin from the browser’s
+point of view, so **no CORS configuration is required on the target broker**
+(see ADR 0006). The STOMP WebSocket connects directly because CORS does not
+apply to WebSockets.
 
 ### Why two protocols?
 
-**RabbitMQ Management REST API** (port 15672, plugin: `rabbitmq_management`)
+**RabbitMQ Management REST API** (default port 15672, plugin: `rabbitmq_management`)
 - Read cluster metadata: queues, exchanges, bindings, node stats, message rates
 - Publish messages via HTTP (`POST /api/exchanges/{vhost}/{exchange}/publish`)
 - Read messages from a queue (`POST /api/queues/{vhost}/{name}/get`, non-destructive by default — see ADR 0004)
 - Does not support real-time streaming — polling required
 
-**WebStomp** (port 15674, plugin: `rabbitmq_web_stomp`)
+**WebStomp** (default port 15674, plugin: `rabbitmq_web_stomp`)
 - WebSocket transport layered over the STOMP protocol
 - Real-time message consumption: subscribe to a queue and messages arrive as events
 - Supports ack / nack per message
 - Cannot list queues/exchanges — only messaging operations
 
 Neither protocol alone is sufficient for this tool, so both are used together.
-
-### Vite dev proxy
-
-In development, the Vite server proxies `/api` requests to `http://rabbitmq:15672`. This avoids CORS issues — the browser only talks to the Vite origin, and Vite forwards to RabbitMQ server-side.
-
-```
-Browser → GET /api/queues → Vite (5173) → http://rabbitmq:15672/queues
-```
 
 ---
 
@@ -115,12 +114,12 @@ rabbitdigger/
 
 ## RabbitMQ Plugins
 
-Two plugins must be active on the broker:
+Two plugins are used by the broker:
 
-| Plugin | Purpose | Enabled by default? |
+| Plugin | Purpose | Required? |
 |---|---|---|
-| `rabbitmq_management` | REST API on port 15672, Management UI | Yes in `*-management` images |
-| `rabbitmq_web_stomp` | WebSocket/STOMP on port 15674 | **No** — must be enabled |
+| `rabbitmq_management` | REST API on port 15672, Management UI | **Yes** — the app cannot connect without it |
+| `rabbitmq_web_stomp` | WebSocket/STOMP on port 15674 | Optional — see [ADR 0005](./adr/0005-degradation-gracieuse-stomp.md). If absent, the app still works but the *Consume* page shows a disabled-state alert. |
 
 The file `docker/rabbitmq/enabled_plugins` is mounted into the container at `/etc/rabbitmq/enabled_plugins` and contains:
 
@@ -268,3 +267,4 @@ Copy `.env.example` to `.env` to override locally.
 - **Native Fetch API**: No HTTP client library needed — the Management API uses standard JSON over HTTP, and Fetch covers all required features.
 - **Ring-buffer for consumed messages**: The messages store caps at 200 entries to prevent unbounded memory growth during long consumption sessions.
 - **Dark theme by default**: Vuetify is initialised with `defaultTheme: 'dark'` — suitable for developer tooling.
+- **Optional STOMP plugin**: Capability is detected at connection time via `/api/overview`'s listeners. When `rabbitmq_web_stomp` is missing, the connection still succeeds and REST-only features remain usable; only `ConsumeView` degrades to an info alert. See [ADR 0005](./adr/0005-degradation-gracieuse-stomp.md).
