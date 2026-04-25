@@ -137,7 +137,18 @@ drd yarn test:coverage
 
 Every feature, change, or bug fix that alters behavior or architecture **must** update both:
 
-### 4.1 Update [doc/tech.MD](doc/tech.MD)
+### 4.1 Update [README.md](README.md)
+
+Update `README.md` whenever you change:
+- the purpose or high-level description of the application;
+- the feature list (new view, removed capability, renamed feature);
+- the production deployment steps, required plugins, or environment variables;
+- the development environment setup (prerequisites, first-run steps, useful URLs);
+- the test commands or acceptance bar.
+
+Keep edits surgical: do not rewrite unrelated sections.
+
+### 4.2 Update [doc/tech.MD](doc/tech.MD)
 
 Update `tech.MD` whenever you change:
 - the dependency list (add/remove/upgrade a library that appears in the Tech Stack table);
@@ -148,7 +159,7 @@ Update `tech.MD` whenever you change:
 
 Keep edits surgical: do not rewrite unrelated sections.
 
-### 4.2 Add an ADR under [doc/adr/](doc/adr/)
+### 4.3 Add an ADR under [doc/adr/](doc/adr/)
 
 Create a new ADR (Architecture Decision Record) for any of the following:
 
@@ -194,8 +205,9 @@ A change is ready for review only when **all** of these are true:
 - [ ] New or changed behavior is covered by tests at the appropriate tier (section 3).
 - [ ] `drd yarn test:run` is green locally.
 - [ ] `drd yarn build` succeeds (`vue-tsc --noEmit` + Vite build).
-- [ ] `doc/tech.MD` is updated if anything in section 4.1 applies.
-- [ ] An ADR is added under `doc/adr/` if anything in section 4.2 applies.
+- [ ] `README.md` is updated if anything in section 4.1 applies.
+- [ ] `doc/tech.MD` is updated if anything in section 4.2 applies.
+- [ ] An ADR is added under `doc/adr/` if anything in section 4.3 applies.
 - [ ] No unrelated reformatting, no new dependencies "just in case", no dead code.
 
 ---
