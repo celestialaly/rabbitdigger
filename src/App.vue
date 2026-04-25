@@ -1,12 +1,11 @@
 <template>
   <v-app>
     <v-navigation-drawer v-if="isConnected" permanent>
-      <v-list-item
-        title="RabbitDigger"
-        subtitle="RabbitMQ Explorer"
-        prepend-icon="mdi-rabbit"
-        nav
-      />
+      <v-list-item prepend-icon="mdi-rabbit" nav>
+        <v-list-item-title>RabbitDigger</v-list-item-title>
+        <v-list-item-subtitle>host: {{ connectionStore.host }}</v-list-item-subtitle>
+        <v-list-item-subtitle>vhost: {{ connectionStore.vhost }}</v-list-item-subtitle>
+      </v-list-item>
       <v-divider />
       <v-list density="compact" nav>
         <v-list-item

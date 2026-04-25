@@ -112,4 +112,49 @@ describe('QueueMessageList', () => {
     expect(wrapper.text()).toContain('order-123')
     expect(wrapper.text()).toContain('orders')
   })
+
+  it('filters rows client-side based on body / routing key / exchange', async () => {
+    const wrapper = mountComponent({ queueName: 'default' })
+    const store = useQueueMessagesStore()
+    store.messages = [
+      makeMessage({ payload: 'order-123', routing_key: 'orders' }),
+      makeMessage({ payload: 'invoice-9', routing_key: 'billing' }),
+      makeMessage({ payload: 'misc', routing_key: 'misc', exchange: 'orders.x' }),
+    ]
+    store.lastFetchAt = new Date()
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('order-123')
+    expect(wrapper.text()).toContain('invoice-9')
+
+    const input = wrapper.find('[data-testid="filter-input"] input')
+    await input.setValue('order')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('order-123')
+    expect(wrapper.text()).toContain('orders.x')
+    expect(wrapper.text()).not.toContain('invoice-9')
+    expect(wrapper.find('[data-testid="last-fetch"]').text()).toContain('2 / 3')
+  })
+
+  it('shows a dedicated empty-state message when the filter matches nothing', async () => {
+    const wrapper = mountComponent({ queueName: 'default' })
+    const store = useQueueMessagesStore()
+    store.messages = [makeMessage({ payload: 'hello', routing_key: 'rk' })]
+    store.lastFetchAt = new Date()
+    await flushPromises()
+
+    const input = wrapper.find('[data-testid="filter-input"] input')
+    await input.setValue('zzz-no-match')
+    await flushPromises()
+
+    expect(wrapper.text()).toContain('No messages match the current filter.')
+  })
+
+  it('disables the filter input when no messages have been fetched', async () => {
+    const wrapper = mountComponent({ queueName: 'default' })
+    await flushPromises()
+    const input = wrapper.find('[data-testid="filter-input"] input')
+    expect((input.element as HTMLInputElement).disabled).toBe(true)
+  })
 })

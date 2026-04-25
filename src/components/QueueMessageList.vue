@@ -39,10 +39,23 @@
           class="text-caption text-medium-emphasis"
           data-testid="last-fetch"
         >
-          {{ store.messages.length }} message(s) — fetched at
+          {{ filteredRows.length }} / {{ store.messages.length }} message(s) — fetched at
           {{ store.lastFetchAt.toLocaleTimeString() }}
         </span>
       </div>
+
+      <v-text-field
+        v-model="filterText"
+        prepend-inner-icon="mdi-filter-variant"
+        label="Filter messages (body, routing key, exchange)"
+        density="compact"
+        variant="outlined"
+        hide-details
+        clearable
+        class="mb-3"
+        :disabled="store.messages.length === 0"
+        data-testid="filter-input"
+      />
 
       <v-alert
         v-if="!requeue"
@@ -68,13 +81,13 @@
       <v-data-table
         v-model:items-per-page="itemsPerPage"
         :headers="headers"
-        :items="rows"
+        :items="filteredRows"
         density="compact"
         hover
         show-expand
         item-value="index"
         :loading="store.loading"
-        no-data-text="No messages — click Fetch to read from the broker."
+        :no-data-text="noDataText"
       >
         <template #item.body="{ item }">
           <span v-if="item.decoded.binary" class="text-medium-emphasis">
@@ -147,6 +160,7 @@ const props = defineProps<{
 const store = useQueueMessagesStore()
 const itemsPerPage = ref(10)
 const requeue = ref(true)
+const filterText = ref('')
 
 const isStream = computed(() => props.queueType === 'stream')
 
@@ -164,6 +178,27 @@ const rows = computed<Row[]>(() =>
     decoded: decodePayload(m.payload, m.payload_encoding),
     truncated: m.payload_bytes > DEFAULT_GET_TRUNCATE,
   })),
+)
+
+const filteredRows = computed<Row[]>(() => {
+  const needle = filterText.value?.trim().toLowerCase() ?? ''
+  if (!needle) return rows.value
+  return rows.value.filter((row) => {
+    const haystack = [
+      row.decoded.text,
+      row.message.routing_key,
+      row.message.exchange,
+    ]
+      .join(' ')
+      .toLowerCase()
+    return haystack.includes(needle)
+  })
+})
+
+const noDataText = computed(() =>
+  store.messages.length === 0
+    ? 'No messages — click Fetch to read from the broker.'
+    : 'No messages match the current filter.',
 )
 
 const headers = [

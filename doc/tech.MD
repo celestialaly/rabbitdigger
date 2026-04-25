@@ -75,7 +75,7 @@ rabbitdigger/
 │   │   └── setup.ts                 # Vitest global setup (Vuetify DOM stubs)
 │   ├── components/
 │   │   ├── StatCard.vue             # Reusable metric card
-│   │   └── QueueMessageList.vue     # Fetches & renders messages of a queue (Phase 1, ADR 0004)
+│   │   └── QueueMessageList.vue     # Fetches, filters & renders messages of a queue (ADR 0004 P1, ADR 0007)
 │   ├── views/
 │   │   ├── ConnectView.vue          # Connection form (entry point)
 │   │   ├── DashboardView.vue        # Cluster overview, polled every 5s
