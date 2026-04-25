@@ -25,11 +25,49 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useConnectionStore } from '@/stores/connection'
+import { computed, onMounted, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useConnectionStore, INACTIVITY_MS } from '@/stores/connection'
+import { useInactivityTimeout } from '@/composables/useInactivityTimeout'
 
 const connectionStore = useConnectionStore()
+const router = useRouter()
+const route = useRoute()
 const isConnected = computed(() => connectionStore.status === 'connected')
+
+const inactivity = useInactivityTimeout(
+  INACTIVITY_MS,
+  () => {
+    connectionStore.disconnect()
+    router.push({ path: '/connect', query: { expired: '1' } })
+  },
+  () => connectionStore.touch(),
+)
+
+onMounted(() => {
+  // Restore the broker settings (host/ports/vhost/username) from the previous
+  // session so the connection form is pre-filled. The password is intentionally
+  // not persisted — see ADR 0009 — so the user still has to re-enter it.
+  connectionStore.hydrateFromStorage()
+})
+
+watch(
+  isConnected,
+  (connected) => {
+    if (connected) inactivity.start()
+    else inactivity.stop()
+  },
+  { immediate: true },
+)
+
+watch(
+  () => route.fullPath,
+  (fullPath) => {
+    if (isConnected.value && route.name !== 'connect') {
+      connectionStore.rememberRoute(fullPath)
+    }
+  },
+)
 
 const navItems = [
   { title: 'Dashboard', icon: 'mdi-view-dashboard', to: '/' },

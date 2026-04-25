@@ -77,6 +77,8 @@ rabbitdigger/
 │   │   ├── StatCard.vue             # Reusable metric card
 │   │   ├── ExportCsvDialog.vue      # Modal to configure CSV export options (ADR 0008)
 │   │   └── QueueMessageList.vue     # Fetches, filters, exports & renders messages of a queue (ADR 0004 P1, ADR 0007, ADR 0008)
+│   ├── composables/
+│   │   └── useInactivityTimeout.ts  # Idle-timer composable used to expire sessions (ADR 0009)
 │   ├── views/
 │   │   ├── ConnectView.vue          # Connection form (entry point)
 │   │   ├── DashboardView.vue        # Cluster overview, polled every 5s
@@ -270,3 +272,4 @@ Copy `.env.example` to `.env` to override locally.
 - **Ring-buffer for consumed messages**: The messages store caps at 200 entries to prevent unbounded memory growth during long consumption sessions.
 - **Dark theme by default**: Vuetify is initialised with `defaultTheme: 'dark'` — suitable for developer tooling.
 - **Optional STOMP plugin**: Capability is detected at connection time via `/api/overview`'s listeners. When `rabbitmq_web_stomp` is missing, the connection still succeeds and REST-only features remain usable; only `ConsumeView` degrades to an info alert. See [ADR 0005](./adr/0005-degradation-gracieuse-stomp.md).
+- **Session persistence without password**: Broker settings (host/ports/vhost/username) and the last visited route are stored in `localStorage` so the connection form pre-fills after a refresh and the app returns to the previous view post-login. The **password is never persisted** — the user re-enters it on each refresh. Sessions expire after 5 minutes of inactivity. See [ADR 0009](./adr/0009-persistance-session-sans-password.md).

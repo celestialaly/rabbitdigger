@@ -14,6 +14,7 @@ A browser-based developer tool for exploring, monitoring, and interacting with R
 - **Exchanges** — Browse all exchanges and their properties.
 - **Publish** — Send messages to any exchange with a custom routing key, body, and optional headers.
 - **Consume** — Subscribe to a queue and receive messages in real time via STOMP/WebSocket. Per-message ACK/NACK. Degrades gracefully when the WebStomp plugin is unavailable.
+- **Session continuity** — Connection form pre-fills automatically after a refresh and the app returns to the last visited view once you re-enter your password. The password itself is **never** persisted (see [ADR 0009](doc/adr/0009-persistance-session-sans-password.md)). The session expires after 5 minutes of inactivity (mouse / keyboard / scroll / touch).
 
 ---
 

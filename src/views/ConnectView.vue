@@ -8,6 +8,16 @@
       <v-card-subtitle class="px-6 pb-4">Connect to your RabbitMQ cluster</v-card-subtitle>
 
       <v-card-text>
+        <v-alert
+          v-if="expired"
+          type="warning"
+          variant="tonal"
+          class="mb-4"
+          data-testid="session-expired-alert"
+        >
+          Session expirée — veuillez vous reconnecter.
+        </v-alert>
+
         <v-form @submit.prevent="handleConnect">
           <v-text-field
             v-model="form.host"
@@ -85,13 +95,16 @@
 </template>
 
 <script setup lang="ts">
-import { reactive, ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useConnectionStore } from '@/stores/connection'
+import { computed, reactive, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { useConnectionStore, INACTIVITY_MS } from '@/stores/connection'
 
 const router = useRouter()
+const route = useRoute()
 const connectionStore = useConnectionStore()
 const showPassword = ref(false)
+
+const expired = computed(() => route.query.expired === '1')
 
 const form = reactive({
   host: connectionStore.host,
@@ -113,7 +126,17 @@ async function handleConnect() {
   await connectionStore.connect()
 
   if (connectionStore.status === 'connected') {
-    router.push('/')
+    const target = pickRedirectTarget()
+    router.push(target)
   }
+}
+
+function pickRedirectTarget(): string {
+  const last = connectionStore.lastRoute
+  if (!last || last === '/connect' || last.startsWith('/connect?')) return '/'
+  // Only honour a recent route — beyond the inactivity window we treat the
+  // saved route as stale and fall back to the dashboard.
+  if (Date.now() - connectionStore.lastActivity > INACTIVITY_MS) return '/'
+  return last
 }
 </script>
