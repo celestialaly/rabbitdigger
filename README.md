@@ -1,3 +1,10 @@
+> [!CAUTION]
+> **This project has been fully vibe-coded with Claude Sonnet 4.6 and Opus 4.7 and has NOT yet been tested in a production environment.**  
+>  
+> This project is initially an AI experimentation created over a week-end.
+> 
+> Even though the AI has been given precise instructions, uses [vuejs-ai skills](https://github.com/vuejs-ai/skills) for code quality, and validates tests, you should be very cautious if you plan on using it in a non-dev environment.
+
 # RabbitDigger
 
 A browser-based developer tool for exploring, monitoring, and interacting with RabbitMQ clusters. It talks directly to RabbitMQ using the Management REST API (port 15672) for metadata and message inspection, and the WebStomp plugin (port 15674) for real-time consumption — no backend proxy needed.
