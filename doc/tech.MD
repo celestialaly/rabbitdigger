@@ -76,6 +76,7 @@ rabbitdigger/
 │   ├── components/
 │   │   ├── StatCard.vue             # Reusable metric card
 │   │   ├── ExportCsvDialog.vue      # Modal to configure CSV export options (ADR 0008)
+│   │   ├── ImportCsvPanel.vue       # Inline panel to import a CSV into a queue (ADR 0011)
 │   │   ├── CreateQueueDialog.vue    # Modal to create a queue from the list (ADR 0010)
 │   │   └── QueueMessageList.vue     # Fetches, filters, exports & renders messages of a queue (ADR 0004 P1, ADR 0007, ADR 0008)
 │   ├── composables/
@@ -84,7 +85,7 @@ rabbitdigger/
 │   │   ├── ConnectView.vue          # Connection form (entry point)
 │   │   ├── DashboardView.vue        # Cluster overview, polled every 5s
 │   │   ├── QueuesView.vue           # Queue list with search
-│   │   ├── QueueDetailView.vue      # Queue detail with Détails / Messages tabs (ADR 0004)
+│   │   ├── QueueDetailView.vue      # Queue detail with Details / Messages / Import tabs (ADR 0004, ADR 0011)
 │   │   ├── ExchangesView.vue        # Exchange list with search
 │   │   ├── PublishView.vue          # Publish a message via REST API
 │   │   └── ConsumeView.vue          # Subscribe to a queue via STOMP
@@ -99,6 +100,7 @@ rabbitdigger/
 │   ├── utils/
 │   │   ├── nanoid.ts                # Tiny ID generator (no dependency)
 │   │   ├── csv.ts                   # RFC 4180 CSV serializer (ADR 0008)
+│   │   ├── csvImport.ts             # RFC 4180 CSV parser + validation for import (ADR 0011)
 │   │   └── decodePayload.ts         # Decode RabbitMQ payload string|base64 → text + binary flag
 │   ├── router/index.ts              # Vue Router — guards redirect to /connect if not connected
 │   ├── App.vue                      # Root: nav drawer + <router-view>

@@ -101,4 +101,64 @@ describe('QueueDetailView', () => {
     expect(store.refreshQueues).toHaveBeenCalledOnce()
     wrapper.unmount()
   })
+
+  describe('Import tab', () => {
+    it('exposes an Import tab next to Details and Messages', async () => {
+      const wrapper = mountView([makeQueue()])
+      await flushPromises()
+      const tabLabels = wrapper.findAll('.v-tab').map((t) => t.text())
+      expect(tabLabels).toEqual(['Details', 'Messages', 'Import'])
+    })
+
+    it('renders ImportCsvPanel with the queue name when the Import tab is active', async () => {
+      const wrapper = mountView([makeQueue({ name: 'default' })])
+      await flushPromises()
+      await wrapper.findAll('.v-tab')[2].trigger('click')
+      await flushPromises()
+
+      const panel = wrapper.find('[data-testid="import-csv-panel"]')
+      expect(panel.exists()).toBe(true)
+      // The panel renders a file picker and an Import button.
+      expect(panel.find('[data-testid="import-file"]').exists()).toBe(true)
+    })
+
+    it('calls reset() on the panel each time the Import tab is re-entered', async () => {
+      const wrapper = mountView([makeQueue()])
+      await flushPromises()
+
+      // First entry into Import.
+      await wrapper.findAll('.v-tab')[2].trigger('click')
+      await flushPromises()
+      const panelInstance = (wrapper.vm as unknown as {
+        importPanel: { reset: () => void } | null
+      }).importPanel
+      expect(panelInstance).not.toBeNull()
+      const resetSpy = vi.spyOn(panelInstance!, 'reset')
+
+      // Switch away then come back — reset should run once.
+      await wrapper.findAll('.v-tab')[1].trigger('click')
+      await flushPromises()
+      await wrapper.findAll('.v-tab')[2].trigger('click')
+      await flushPromises()
+
+      expect(resetSpy).toHaveBeenCalledTimes(1)
+    })
+
+    it('refreshes queues after the panel emits "imported"', async () => {
+      const wrapper = mountView([makeQueue()])
+      await flushPromises()
+      await wrapper.findAll('.v-tab')[2].trigger('click')
+      await flushPromises()
+
+      const store = useQueuesStore()
+      const refreshSpy = vi.spyOn(store, 'refreshQueues').mockResolvedValue()
+
+      await wrapper
+        .findComponent({ name: 'ImportCsvPanel' })
+        .vm.$emit('imported', { published: 3, failed: 0, canceled: false })
+      await flushPromises()
+
+      expect(refreshSpy).toHaveBeenCalledOnce()
+    })
+  })
 })

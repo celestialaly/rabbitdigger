@@ -18,6 +18,7 @@ A browser-based developer tool for exploring, monitoring, and interacting with R
 - **Queue detail** — Inspect queue metadata and read messages non-destructively (requeue option keeps messages in place).
   - Client-side substring filtering of fetched messages.
   - Export messages to CSV with configurable separator and quote character.
+  - Import messages from CSV (same format as the export) into the queue, with auto-detected base64 payloads, preserved `message_id`, parallel publishing (up to 10 in flight) and a cancellable progress bar.
 - **Exchanges** — Browse all exchanges and their properties.
 - **Publish** — Send messages to any exchange with a custom routing key, body, and optional headers.
 - **Consume** — Subscribe to a queue and receive messages in real time via STOMP/WebSocket. Per-message ACK/NACK. Degrades gracefully when the WebStomp plugin is unavailable.

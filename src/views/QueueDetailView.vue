@@ -37,6 +37,7 @@
     <v-tabs v-model="tab" color="primary" data-testid="tabs">
       <v-tab value="details">Details</v-tab>
       <v-tab value="messages">Messages</v-tab>
+      <v-tab value="import">Import</v-tab>
     </v-tabs>
 
     <v-window v-model="tab" class="mt-4">
@@ -58,21 +59,48 @@
       <v-window-item value="messages">
         <QueueMessageList :queue-name="name" :queue-type="queue?.type" />
       </v-window-item>
+
+      <v-window-item value="import">
+        <ImportCsvPanel
+          ref="importPanel"
+          :queue-name="name"
+          @imported="onImported"
+        />
+      </v-window-item>
     </v-window>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useQueuesStore } from '@/stores/queues'
 import { useQueueMessagesStore } from '@/stores/queueMessages'
 import QueueMessageList from '@/components/QueueMessageList.vue'
+import ImportCsvPanel from '@/components/ImportCsvPanel.vue'
 
 const props = defineProps<{ name: string }>()
 
 const queuesStore = useQueuesStore()
 const messagesStore = useQueueMessagesStore()
-const tab = ref<'details' | 'messages'>('messages')
+const tab = ref<'details' | 'messages' | 'import'>('messages')
+const importPanel = ref<InstanceType<typeof ImportCsvPanel> | null>(null)
+
+// Reset the import panel state every time the user enters the tab so a new
+// import session starts from a clean slate (no leftover file, parsed rows or
+// progress from the previous visit).
+watch(tab, (next, prev) => {
+  if (next === 'import' && prev !== 'import') {
+    importPanel.value?.reset()
+  }
+})
+
+/**
+ * After a successful (or partial) import, refresh the queues cache so the
+ * new `messages_ready` / `messages` counters propagate to the rest of the UI.
+ */
+function onImported(_result: { published: number; failed: number; canceled: boolean }): void {
+  void queuesStore.refreshQueues()
+}
 
 const queue = computed(() =>
   queuesStore.queues.find((q) => q.name === props.name) ?? null,

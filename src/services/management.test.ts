@@ -101,6 +101,73 @@ describe('management service', () => {
     })
   })
 
+  describe('publishMessage', () => {
+    it('POSTs to /api/exchanges/{vhost}/{name}/publish with sensible defaults', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ routed: true }) })
+      await management.publishMessage('amq.direct', 'rk', 'hello')
+
+      const [url, init] = fetchMock.mock.calls[0]
+      expect(url).toBe('/__rabbit/api/exchanges/%2F/amq.direct/publish')
+      expect(init.method).toBe('POST')
+      expect(JSON.parse(init.body as string)).toEqual({
+        properties: { delivery_mode: 2, headers: {} },
+        routing_key: 'rk',
+        payload: 'hello',
+        payload_encoding: 'string',
+      })
+    })
+
+    it('targets the default exchange when name is empty', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ routed: true }) })
+      await management.publishMessage('', 'orders', 'hello')
+
+      const [url] = fetchMock.mock.calls[0]
+      // Empty exchange name encodes to '' in the path segment between two slashes.
+      expect(url).toBe('/__rabbit/api/exchanges/%2F//publish')
+    })
+
+    it('forwards custom headers via properties.headers', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ routed: true }) })
+      await management.publishMessage('ex', 'rk', 'hello', {
+        headers: { 'x-trace': 'abc' },
+      })
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+      expect(body.properties.headers).toEqual({ 'x-trace': 'abc' })
+      expect(body.properties.delivery_mode).toBe(2)
+    })
+
+    it('merges caller-supplied properties (e.g. message_id) on top of defaults', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ routed: true }) })
+      await management.publishMessage('', 'orders', 'hello', {
+        properties: { message_id: 'msg-42', content_type: 'application/json' },
+      })
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+      expect(body.properties).toEqual({
+        delivery_mode: 2,
+        headers: {},
+        message_id: 'msg-42',
+        content_type: 'application/json',
+      })
+    })
+
+    it('forwards payload_encoding=base64 when requested', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ routed: true }) })
+      await management.publishMessage('', 'q', 'SGVsbG8=', { payloadEncoding: 'base64' })
+
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body as string)
+      expect(body.payload_encoding).toBe('base64')
+      expect(body.payload).toBe('SGVsbG8=')
+    })
+
+    it('honours a custom vhost', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({ routed: true }) })
+      await management.publishMessage('', 'q', 'hi', { vhost: 'prod' })
+      expect(fetchMock.mock.calls[0][0]).toBe('/__rabbit/api/exchanges/prod//publish')
+    })
+  })
+
   describe('createQueue', () => {
     it('PUTs to /api/queues/{vhost}/{name} with encoded vhost and name', async () => {
       fetchMock.mockResolvedValueOnce({ ok: true, text: async () => '' })

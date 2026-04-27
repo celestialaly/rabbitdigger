@@ -136,6 +136,24 @@ export interface GetMessagesOptions {
 
 export const DEFAULT_GET_TRUNCATE = 50_000
 
+/**
+ * Options for `management.publishMessage`.
+ *
+ * - `headers` is folded into `properties.headers` for callers that only need
+ *   simple header metadata (used by `PublishView`).
+ * - `properties` is merged on top of the defaults (`delivery_mode: 2`,
+ *   `headers`) so callers can override or supplement specific fields such as
+ *   `message_id` (used by the CSV import flow, ADR 0011).
+ * - `payloadEncoding` mirrors RabbitMQ's `payload_encoding`: `'string'` for
+ *   UTF-8 text or `'base64'` for binary content.
+ */
+export interface PublishMessageOptions {
+  headers?: Record<string, string>
+  properties?: PeekedMessage['properties']
+  payloadEncoding?: 'string' | 'base64'
+  vhost?: string
+}
+
 export interface RabbitExchange {
   name: string
   vhost: string
@@ -182,18 +200,27 @@ export const management = {
     exchange: string,
     routingKey: string,
     payload: string,
-    headers: Record<string, string> = {},
-    vhost = '%2F',
-  ) =>
-    request<{ routed: boolean }>(`/api/exchanges/${vhost}/${encodeURIComponent(exchange)}/publish`, {
-      method: 'POST',
-      body: JSON.stringify({
-        properties: { headers, delivery_mode: 2 },
-        routing_key: routingKey,
-        payload,
-        payload_encoding: 'string',
-      }),
-    }),
+    opts: PublishMessageOptions = {},
+  ) => {
+    const { headers, properties, payloadEncoding = 'string', vhost = '%2F' } = opts
+    const mergedProperties = {
+      delivery_mode: 2,
+      headers: headers ?? {},
+      ...(properties ?? {}),
+    }
+    return request<{ routed: boolean }>(
+      `/api/exchanges/${vhost}/${encodeURIComponent(exchange)}/publish`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          properties: mergedProperties,
+          routing_key: routingKey,
+          payload,
+          payload_encoding: payloadEncoding,
+        }),
+      },
+    )
+  },
 
   /**
    * Read messages from a queue without (by default) consuming them.

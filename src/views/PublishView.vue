@@ -91,7 +91,7 @@ async function handlePublish() {
   result.value = null
   try {
     const headers = Object.fromEntries(form.headers.map((h) => [h.key, h.value]))
-    const res = await management.publishMessage(form.exchange, form.routingKey, form.body, headers)
+    const res = await management.publishMessage(form.exchange, form.routingKey, form.body, { headers })
     result.value = {
       type: res.routed ? 'success' : 'error',
       message: res.routed ? 'Message published and routed.' : 'Message published but not routed to any queue.',
