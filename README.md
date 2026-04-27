@@ -16,6 +16,7 @@ A browser-based developer tool for exploring, monitoring, and interacting with R
 - **Dashboard** — Cluster overview with real-time stats (queues, consumers, message rates, connections), auto-refreshed every 5 seconds.
 - **Queues** — Browse and search all queues; view name, state, durability, message counts, and consumer count. Create a new queue (classic / quorum / stream) directly from the list.
 - **Queue detail** — Inspect queue metadata and read messages non-destructively (requeue option keeps messages in place).
+  - Click any message row to open a detail modal with the full body, properties and headers (and a copy-to-clipboard button).
   - Client-side substring filtering of fetched messages.
   - Export messages to CSV with configurable separator and quote character.
   - Import messages from CSV (same format as the export) into the queue, with auto-detected base64 payloads, preserved `message_id`, parallel publishing (up to 10 in flight) and a cancellable progress bar.

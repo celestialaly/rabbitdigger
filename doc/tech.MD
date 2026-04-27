@@ -78,7 +78,8 @@ rabbitdigger/
 │   │   ├── ExportCsvDialog.vue      # Modal to configure CSV export options (ADR 0008)
 │   │   ├── ImportCsvPanel.vue       # Inline panel to import a CSV into a queue (ADR 0011)
 │   │   ├── CreateQueueDialog.vue    # Modal to create a queue from the list (ADR 0010)
-│   │   └── QueueMessageList.vue     # Fetches, filters, exports & renders messages of a queue (ADR 0004 P1, ADR 0007, ADR 0008)
+│   │   ├── MessageDetailDialog.vue  # Modal showing the full body / properties / headers of a message (ADR 0012)
+│   │   └── QueueMessageList.vue     # Fetches, filters, exports & renders messages of a queue (ADR 0004 P1, ADR 0007, ADR 0008, ADR 0012)
 │   ├── composables/
 │   │   └── useInactivityTimeout.ts  # Idle-timer composable used to expire sessions (ADR 0009)
 │   ├── views/

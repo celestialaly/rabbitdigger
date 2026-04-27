@@ -15,6 +15,7 @@ Les ADR documentent les décisions techniques significatives prises sur ce proje
 | [0009](./0009-persistance-session-sans-password.md) | Persistance partielle de session sans mot de passe + expiration par inactivité | Accepté |
 | [0010](./0010-creation-queue-depuis-liste.md) | Création de queue depuis la liste | Accepté |
 | [0011](./0011-import-csv-messages-queue.md) | Import CSV de messages dans une queue | Accepté |
+| [0012](./0012-modale-detail-message.md) | Modale de détail d'un message | Accepté |
 
 ## Format
 

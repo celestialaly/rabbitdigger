@@ -93,10 +93,11 @@
         :items="filteredRows"
         density="compact"
         hover
-        show-expand
         item-value="index"
         :loading="store.loading"
         :no-data-text="noDataText"
+        :row-props="() => ({ style: 'cursor: pointer' })"
+        @click:row="onRowClick"
       >
         <template #item.body="{ item }">
           <span v-if="item.decoded.binary" class="text-medium-emphasis">
@@ -127,29 +128,12 @@
             </template>
           </v-tooltip>
         </template>
-        <template #expanded-row="{ item, columns }">
-          <tr>
-            <td :colspan="columns.length" class="pa-4 bg-grey-darken-4">
-              <div class="text-overline mb-1">Payload</div>
-              <v-chip
-                v-if="item.decoded.binary"
-                color="purple"
-                size="x-small"
-                class="mb-2"
-              >
-                binary (base64)
-              </v-chip>
-              <pre class="text-caption mb-4" style="white-space: pre-wrap; word-break: break-all">{{ item.decoded.text }}</pre>
-
-              <div class="text-overline mb-1">Properties</div>
-              <pre class="text-caption mb-4">{{ formatJson(item.message.properties) }}</pre>
-
-              <div class="text-overline mb-1">Headers</div>
-              <pre class="text-caption">{{ formatJson(item.message.properties.headers ?? {}) }}</pre>
-            </td>
-          </tr>
-        </template>
       </v-data-table>
+
+      <MessageDetailDialog
+        v-model="detailOpen"
+        :message="selectedMessage"
+      />
 
       <ExportCsvDialog
         v-model="exportDialogOpen"
@@ -168,6 +152,7 @@ import { decodePayload, type DecodedPayload } from '@/utils/decodePayload'
 import { DEFAULT_GET_TRUNCATE, type PeekedMessage } from '@/services/management'
 import { toCsv } from '@/utils/csv'
 import ExportCsvDialog from '@/components/ExportCsvDialog.vue'
+import MessageDetailDialog from '@/components/MessageDetailDialog.vue'
 
 const props = defineProps<{
   queueName: string
@@ -180,6 +165,8 @@ const itemsPerPage = ref(25)
 const requeue = ref(true)
 const filterText = ref('')
 const exportDialogOpen = ref(false)
+const detailOpen = ref(false)
+const selectedMessage = ref<PeekedMessage | null>(null)
 
 const CSV_COLUMNS = [
   'id',
@@ -249,12 +236,9 @@ function truncate(s: string, n: number) {
   return s.length > n ? s.slice(0, n) + '…' : s
 }
 
-function formatJson(value: unknown) {
-  try {
-    return JSON.stringify(value, null, 2)
-  } catch {
-    return String(value)
-  }
+function onRowClick(_event: unknown, ctx: { item: Row }) {
+  selectedMessage.value = ctx.item.message
+  detailOpen.value = true
 }
 
 function onExport(opts: { separator: string; quote: string; includeHeader: boolean }) {

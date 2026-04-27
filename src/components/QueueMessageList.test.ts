@@ -325,4 +325,35 @@ describe('QueueMessageList', () => {
       }
     })
   })
+
+  describe('Message detail dialog', () => {
+    beforeEach(() => {
+      document.body.innerHTML = ''
+    })
+
+    it('opens the detail dialog with the clicked message', async () => {
+      const wrapper = mountComponent({ queueName: 'q' })
+      const store = useQueueMessagesStore()
+      store.messages = [
+        makeMessage({ payload: 'first', routing_key: 'rk-1' }),
+        makeMessage({ payload: 'second body', routing_key: 'rk-2' }),
+      ]
+      store.lastFetchAt = new Date()
+      await flushPromises()
+
+      // The data-table renders one <tr> per message in <tbody>; click the
+      // second row (index 1).
+      const rows = wrapper.findAll('tbody tr')
+      expect(rows.length).toBeGreaterThanOrEqual(2)
+      await rows[1].trigger('click')
+      await flushPromises()
+
+      const body = document.querySelector('[data-testid="message-detail-body"]')
+      expect(body).not.toBeNull()
+      expect(body?.textContent).toBe('second body')
+      expect(
+        document.querySelector('[data-testid="message-detail-summary"]')?.textContent,
+      ).toContain('rk-2')
+    })
+  })
 })
