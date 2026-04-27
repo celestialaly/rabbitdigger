@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
   parseCsv,
-  looksLikeBase64,
   detectHeader,
   validateAndMapRows,
   EXPECTED_COLUMNS,
@@ -66,32 +65,6 @@ describe('parseCsv', () => {
     expect(() => parseCsv('a,b', { separator: ',,', quote: '"' })).toThrow()
     expect(() => parseCsv('a,b', { separator: ',', quote: '' })).toThrow()
     expect(() => parseCsv('a,b', { separator: ',', quote: ',' })).toThrow()
-  })
-})
-
-describe('looksLikeBase64', () => {
-  it('accepts a typical base64 string', () => {
-    expect(looksLikeBase64('SGVsbG8=')).toBe(true) // "Hello"
-    expect(looksLikeBase64('SGVsbG8gd29ybGQ=')).toBe(true)
-  })
-
-  it('rejects empty strings', () => {
-    expect(looksLikeBase64('')).toBe(false)
-  })
-
-  it('rejects strings whose length is not a multiple of 4', () => {
-    expect(looksLikeBase64('abc')).toBe(false)
-    expect(looksLikeBase64('abcde')).toBe(false)
-  })
-
-  it('rejects strings with non-base64 characters', () => {
-    expect(looksLikeBase64('hello world!!')).toBe(false)
-    expect(looksLikeBase64('plain te')).toBe(false) // length 8 but contains space
-  })
-
-  it('rejects strings with padding in the wrong place', () => {
-    expect(looksLikeBase64('=AAA')).toBe(false)
-    expect(looksLikeBase64('A=AA')).toBe(false)
   })
 })
 

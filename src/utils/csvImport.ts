@@ -8,6 +8,8 @@
  * tested in isolation.
  */
 
+import { isBase64 } from './isBase64'
+
 /** Columns produced by the CSV export, in order. */
 export const EXPECTED_COLUMNS = [
   'id',
@@ -173,29 +175,6 @@ export function parseCsv(
   return rows
 }
 
-/**
- * Heuristic: does `s` look like a syntactically valid base64 string?
- *
- * - Length must be a non-zero multiple of 4.
- * - Alphabet limited to RFC 4648 standard (A-Z, a-z, 0-9, `+`, `/`).
- * - Padding (`=`) only at the end, max 2 chars.
- * - Decoding via `atob` must succeed.
- *
- * The empty string returns `false` so empty bodies are sent as `string`.
- */
-export function looksLikeBase64(s: string): boolean {
-  if (s.length === 0) return false
-  if (s.length % 4 !== 0) return false
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(s)) return false
-  try {
-    // atob throws on invalid input. happy-dom and browsers both expose it.
-    atob(s)
-    return true
-  } catch {
-    return false
-  }
-}
-
 const UTF8_ENCODER = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null
 
 function utf8ByteLength(s: string): number {
@@ -228,7 +207,7 @@ function utf8ByteLength(s: string): number {
  *      treat as `base64`.
  *    - Otherwise (mismatch on both sides), fall back to the syntactic
  *      heuristic so the user still gets a reasonable guess.
- * 2. When `size` is missing or unparseable, use `looksLikeBase64` alone.
+ * 2. When `size` is missing or unparseable, use `isBase64` alone.
  */
 export function detectEncoding(body: string, size: string | undefined): 'string' | 'base64' {
   if (body.length === 0) return 'string'
@@ -236,7 +215,7 @@ export function detectEncoding(body: string, size: string | undefined): 'string'
   if (size !== undefined && /^\d+$/.test(size.trim())) {
     const expected = Number.parseInt(size.trim(), 10)
     if (utf8ByteLength(body) === expected) return 'string'
-    if (looksLikeBase64(body)) {
+    if (isBase64(body)) {
       try {
         if (atob(body).length === expected) return 'base64'
       } catch {
@@ -244,10 +223,10 @@ export function detectEncoding(body: string, size: string | undefined): 'string'
       }
     }
     // Size disagrees with both encodings: trust the syntactic heuristic.
-    return looksLikeBase64(body) ? 'base64' : 'string'
+    return isBase64(body) ? 'base64' : 'string'
   }
 
-  return looksLikeBase64(body) ? 'base64' : 'string'
+  return isBase64(body) ? 'base64' : 'string'
 }
 
 /**
