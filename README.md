@@ -7,7 +7,7 @@ A browser-based developer tool for exploring, monitoring, and interacting with R
 ## Features
 
 - **Dashboard** — Cluster overview with real-time stats (queues, consumers, message rates, connections), auto-refreshed every 5 seconds.
-- **Queues** — Browse and search all queues; view name, state, durability, message counts, and consumer count.
+- **Queues** — Browse and search all queues; view name, state, durability, message counts, and consumer count. Create a new queue (classic / quorum / stream) directly from the list.
 - **Queue detail** — Inspect queue metadata and read messages non-destructively (requeue option keeps messages in place).
   - Client-side substring filtering of fetched messages.
   - Export messages to CSV with configurable separator and quote character.

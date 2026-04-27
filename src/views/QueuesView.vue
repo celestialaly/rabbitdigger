@@ -3,6 +3,16 @@
     <div class="d-flex align-center mb-4">
       <div class="text-h5">Queues</div>
       <v-spacer />
+      <v-btn
+        color="primary"
+        variant="flat"
+        prepend-icon="mdi-plus"
+        class="mr-3"
+        data-testid="new-queue-btn"
+        @click="dialogOpen = true"
+      >
+        New queue
+      </v-btn>
       <v-text-field
         v-model="search"
         placeholder="Search"
@@ -42,15 +52,19 @@
         </v-icon>
       </template>
     </v-data-table>
+
+    <CreateQueueDialog v-model="dialogOpen" />
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useQueuesStore } from '@/stores/queues'
+import CreateQueueDialog from '@/components/CreateQueueDialog.vue'
 
 const store = useQueuesStore()
 const search = ref('')
+const dialogOpen = ref(false)
 
 const headers = [
   { title: 'Name', key: 'name' },

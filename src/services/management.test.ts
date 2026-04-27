@@ -100,4 +100,93 @@ describe('management service', () => {
       )
     })
   })
+
+  describe('createQueue', () => {
+    it('PUTs to /api/queues/{vhost}/{name} with encoded vhost and name', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true, text: async () => '' })
+      await management.createQueue({
+        name: 'orders',
+        type: 'classic',
+        durable: true,
+        auto_delete: false,
+      })
+
+      const [url, init] = fetchMock.mock.calls[0]
+      expect(url).toBe('/__rabbit/api/queues/%2F/orders')
+      expect(init.method).toBe('PUT')
+      expect(JSON.parse(init.body as string)).toEqual({
+        durable: true,
+        auto_delete: false,
+        arguments: { 'x-queue-type': 'classic' },
+      })
+    })
+
+    it('encodes special characters in the queue name', async () => {
+      fetchMock.mockResolvedValueOnce({ ok: true, text: async () => '' })
+      await management.createQueue({
+        name: 'my queue/slash',
+        type: 'quorum',
+        durable: true,
+        auto_delete: false,
+      })
+      expect(fetchMock.mock.calls[0][0]).toBe(
+        '/__rabbit/api/queues/%2F/my%20queue%2Fslash',
+      )
+    })
+
+    it('forwards x-queue-type for quorum and stream', async () => {
+      fetchMock.mockResolvedValue({ ok: true, text: async () => '' })
+
+      await management.createQueue({ name: 'q1', type: 'quorum', durable: true, auto_delete: false })
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body as string).arguments).toEqual({
+        'x-queue-type': 'quorum',
+      })
+
+      await management.createQueue({ name: 'q2', type: 'stream', durable: true, auto_delete: false })
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body as string).arguments).toEqual({
+        'x-queue-type': 'stream',
+      })
+    })
+
+    it('uses the vhost from the connection store', async () => {
+      const store = useConnectionStore()
+      store.vhost = 'prod'
+      fetchMock.mockResolvedValueOnce({ ok: true, text: async () => '' })
+      await management.createQueue({
+        name: 'orders',
+        type: 'classic',
+        durable: true,
+        auto_delete: false,
+      })
+      expect(fetchMock.mock.calls[0][0]).toBe('/__rabbit/api/queues/prod/orders')
+    })
+
+    it('does not call res.json() (broker returns no body)', async () => {
+      const json = vi.fn()
+      fetchMock.mockResolvedValueOnce({ ok: true, json, text: async () => '' })
+      await management.createQueue({
+        name: 'orders',
+        type: 'classic',
+        durable: true,
+        auto_delete: false,
+      })
+      expect(json).not.toHaveBeenCalled()
+    })
+
+    it('throws on non-OK with status and body', async () => {
+      fetchMock.mockResolvedValueOnce({
+        ok: false,
+        status: 406,
+        text: async () => 'PRECONDITION_FAILED - inequivalent arg',
+      })
+      await expect(
+        management.createQueue({
+          name: 'orders',
+          type: 'classic',
+          durable: false,
+          auto_delete: false,
+        }),
+      ).rejects.toThrow(/HTTP 406: PRECONDITION_FAILED/)
+    })
+  })
 })

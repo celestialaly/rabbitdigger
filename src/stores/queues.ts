@@ -1,6 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { management, type RabbitQueue, type RabbitExchange, type RabbitOverview } from '@/services/management'
+import {
+  management,
+  type CreateQueueInput,
+  type RabbitQueue,
+  type RabbitExchange,
+  type RabbitOverview,
+} from '@/services/management'
 
 export const useQueuesStore = defineStore('queues', () => {
   const queues = ref<RabbitQueue[]>([])
@@ -41,5 +47,17 @@ export const useQueuesStore = defineStore('queues', () => {
     }
   }
 
-  return { queues, exchanges, overview, loading, error, refreshQueues, refreshExchanges, refreshOverview }
+  /**
+   * Create a queue on the broker, then refresh the local list. Errors are
+   * propagated so the caller (typically a dialog) can display them inline.
+   */
+  async function createQueue(input: CreateQueueInput) {
+    await management.createQueue(input)
+    await refreshQueues()
+  }
+
+  return {
+    queues, exchanges, overview, loading, error,
+    refreshQueues, refreshExchanges, refreshOverview, createQueue,
+  }
 })

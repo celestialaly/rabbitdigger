@@ -35,6 +35,22 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>
 }
 
+/**
+ * Like `request`, but for endpoints that return no body (RabbitMQ uses
+ * 201/204 without content for resource creation/deletion). We never call
+ * `res.json()`, which would throw on an empty body.
+ */
+async function requestNoContent(path: string, options: RequestInit = {}): Promise<void> {
+  const res = await fetch(`${PROXY_PREFIX}${path}`, {
+    ...options,
+    headers: { ...getHeaders(), ...(options.headers ?? {}) },
+  })
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(`HTTP ${res.status}: ${text}`)
+  }
+}
+
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 export interface RabbitOverview {
@@ -137,6 +153,17 @@ export interface RabbitBinding {
   routing_key: string
 }
 
+/** Supported queue types when creating a queue (RabbitMQ 3.8+). */
+export type QueueType = 'classic' | 'quorum' | 'stream'
+
+/** Caller-facing payload to create a queue. Mapped to the broker body in `createQueue`. */
+export interface CreateQueueInput {
+  name: string
+  type: QueueType
+  durable: boolean
+  auto_delete: boolean
+}
+
 // ── API calls ─────────────────────────────────────────────────────────────────
 
 export const management = {
@@ -199,4 +226,23 @@ export const management = {
 
   /** Verify credentials by calling /api/whoami */
   whoami: () => request<{ name: string; tags: string }>('/api/whoami'),
+
+  /**
+   * Create (or idempotently update) a queue via PUT /api/queues/{vhost}/{name}.
+   * The vhost is read from the connection store and URL-encoded. The queue
+   * type is sent through `arguments['x-queue-type']` (RabbitMQ 3.8+).
+   */
+  createQueue: (input: CreateQueueInput) => {
+    const store = useConnectionStore()
+    const vhost = encodeURIComponent(store.vhost)
+    const name = encodeURIComponent(input.name)
+    return requestNoContent(`/api/queues/${vhost}/${name}`, {
+      method: 'PUT',
+      body: JSON.stringify({
+        durable: input.durable,
+        auto_delete: input.auto_delete,
+        arguments: { 'x-queue-type': input.type },
+      }),
+    })
+  },
 }
